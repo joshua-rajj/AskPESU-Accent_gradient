@@ -48,19 +48,18 @@ def startup_event():
     global app_rag
 
     if not os.environ.get("GOOGLE_API_KEY"):
-        # os.environ["GOOGLE_API_KEY"] = "AIzaSyDmAcinTsUXaah7faYxcuvyr5v7DZ0R_f4"  AIzaSyD0L2zheH0V19aQKo5hqWvJsWH2Muxgxrs
-        os.environ["GOOGLE_API_KEY"] = "AIzaSyD0L2zheH0V192Muxgxrs"
+        os.environ["GOOGLE_API_KY"] 
 
     # genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
     
-    client = QdrantClient(
-    url="https://637023ed-a0a7-45c9-b4a4-22fb60fc4ae7.europe-west3-0.gcp.cloud.qdrant.io", 
-    api_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJyIn0.i2Am7zbIrlT8UROWlfOeQZyaxtSsb88tUpnDglDbtbs"
+    client = Client(
+    url="", 
+    api_key=""
 )
     embeddings = HuggingFaceEmbeddings(model_name="Alibaba-NLP/gte-modernbert-base")
 
     vector_store = QdrantVectorStore(
-        collection_name="reddit_vectors",
+        collection_name="vectors",
         embedding=embeddings,
         client=client
     )
