@@ -49,7 +49,7 @@ def startup_event():
 
     if not os.environ.get("GOOGLE_API_KEY"):
         # os.environ["GOOGLE_API_KEY"] = "AIzaSyDmAcinTsUXaah7faYxcuvyr5v7DZ0R_f4"  AIzaSyD0L2zheH0V19aQKo5hqWvJsWH2Muxgxrs
-        os.environ["GOOGLE_API_KEY"] = "AIzaSyD0L2zheH0V19aQKo5hqWvJsWH2Muxgxrs"
+        os.environ["GOOGLE_API_KEY"] = "AIzaSyD0L2zheH0V192Muxgxrs"
 
     # genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
     
