@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>askPESU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --pure-black: #000;
+      --pure-white: #fff;
+      --border-color: rgba(255, 255, 255, 0.2);
+      --transition-speed: 0.5s;
+      --app-height: 100vh;
+    }
+
+    /* General Setup & Scrollbar Hiding */
+    * { box-sizing: border-box; }
+    html {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    html::-webkit-scrollbar { display: none; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--pure-black);
+      color: var(--pure-white);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* Splash Screen Styling */
+    #splash-screen {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: var(--pure-black);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 1;
+      transition: opacity var(--transition-speed) ease-out;
+    }
+    .splash-content { text-align: center; }
+    .splash-logo {
+      font-size: 3rem; font-weight: bold;
+      opacity: 0;
+      animation: fadeIn 1s ease-in forwards;
+    }
+    .loading-bar-container {
+      width: 150px; height: 3px;
+      background: var(--border-color);
+      margin: 20px auto 0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .loading-bar {
+      width: 0; height: 100%;
+      background: var(--pure-white);
+      border-radius: 3px;
+      animation: load 1.8s ease-in-out forwards;
+    }
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes load { to { width: 100%; } }
+
+    /* Main App Wrapper */
+    #app-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: var(--app-height);
+      width: 100%;
+      opacity: 0;
+      transition: opacity var(--transition-speed) ease-in;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 0 16px; /* Adjusted padding */
+      height: 60px;
+      border-bottom: 1px solid var(--border-color);
+      opacity: 0;
+      transition: opacity var(--transition-speed);
+      flex-shrink: 0;
+    }
+    .logo-placeholder {
+      width: 32px; height: 32px;
+      margin-right: 12px;
+    }
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Initial State: Centered Logo & Prompt */
+    #logo-center {
+      position: absolute;
+      top: 25%; /* Positioned at the top */
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3.5rem;
+      font-weight: bold;
+      transition: all var(--transition-speed) ease-in-out;
+    }
+    .prompt-area {
+      position: absolute;
+      top: 50%; /* Centered vertically */
+      left: 50%;
+      transform: translate(-50%, -50%); /* Centered perfectly */
+      width: 100%;
+      max-width: 800px;
+      padding: 10px 20px;
+      transition: all var(--transition-speed) ease-in-out;
+      z-index: 10;
+    }
+
+    /* Chat View Active State */
+    #app-wrapper.chat-active .header { opacity: 1; }
+    #app-wrapper.chat-active #logo-center {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8);
+      pointer-events: none;
+    }
+    #app-wrapper.chat-active .prompt-area {
+      position: relative; /* Becomes part of the layout flow */
+      top: auto; left: auto;
+      transform: none;
+      margin-top: auto; /* Pushes it to the bottom */
+      margin-left: auto; /* Keeps it centered */
+      margin-right: auto; /* Keeps it centered */
+    }
+    #app-wrapper.chat-active .chat-box { opacity: 1; }
+
+    /* Chat Container & Messages */
+    .chat-container {
+      flex: 1;
+      position: relative;
+    }
+    .chat-box {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      padding: 20px;
+      overflow-y: auto;
+      opacity: 0;
+      transition: opacity var(--transition-speed);
+    }
+    .chat-box-inner {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .message-row {
+      display: flex;
+      margin-bottom: 12px;
+      animation: popIn 0.3s ease-out forwards;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .message {
+      padding: 12px 16px;
+      border-radius: 18px;
+      max-width: 80%;
+      line-height: 1.5;
+      word-wrap: break-word;
+      font-size: 1rem;
+    }
+    .message-row.user { justify-content: flex-end; }
+    .message-row.bot { justify-content: flex-start; }
+    .user .message {
+      background: var(--pure-white); color: var(--pure-black);
+      border-bottom-right-radius: 4px;
+    }
+    .bot .message {
+      background: #1c1c1c; color: var(--pure-white);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 4px;
+    }
+    .bot .message.waiting {
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Input Container */
+    .input-container {
+      display: flex;
+      align-items: center;
+      background: #111;
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      padding: 8px 8px 8px 20px;
+    }
+    textarea {
+      flex: 1; border: none; background: transparent;
+      color: var(--pure-white);
+      font-size: 16px;
+      resize: none;
+      line-height: 1.5;
+      max-height: 200px;
+      padding-right: 10px;
+    }
+    textarea:focus { outline: none; }
+    .send-button {
+      border: none; background: var(--pure-white);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .send-button:hover { transform: scale(1.1); }
+    .send-button svg { width: 20px; height: 20px; }
+    
+    @media (max-width: 600px) {
+      #logo-center { font-size: 2.5rem; }
+      .splash-logo { font-size: 2.5rem; }
+      .message { max-width: 90%; font-size: 0.95rem; }
+      .prompt-area { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="splash-screen">
+    <div class="splash-content">
+        <div class="splash-logo">askPESU</div>
+        <div class="loading-bar-container"><div class="loading-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="app-wrapper">
+    <div class="header">
+      <div class="logo-placeholder"></div>
+      <span class="logo-text">askPESU</span>
+    </div>
+    <div class="main-content">
+      <div class="chat-container">
+        <h1 id="logo-center">askPESU</h1>
+        <div id="chat-box" class="chat-box">
+            <div class="chat-box-inner"></div>
+        </div>
+      </div>
+      <div class="prompt-area">
+        <div class="input-container">
+            <textarea id="user-input" placeholder="Ask a question..." rows="1"></textarea>
+            <button class="send-button" onclick="handleSendMessage()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="var(--pure-black)">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    const splashScreen = document.getElementById('splash-screen');
+    const appWrapper = document.getElementById('app-wrapper');
+    const chatBox = document.getElementById("chat-box");
+    const chatBoxInner = document.querySelector(".chat-box-inner");
+    const textarea = document.getElementById("user-input");
+    
+    let isChatActive = false;
+
+    function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    }
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('load', () => {
+      setAppHeight();
+      setTimeout(() => {
+        splashScreen.style.opacity = '0';
+        splashScreen.style.pointerEvents = 'none';
+        appWrapper.style.opacity = '1';
+      }, 2000);
+    });
+
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
+
+    textarea.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    });
+    
+    function activateChatView() {
+        if (!isChatActive) {
+            appWrapper.classList.add('chat-active');
+            isChatActive = true;
+        }
+    }
+
+    async function handleSendMessage() {
+      const userMessage = textarea.value.trim();
+      const BACKEND_IP = '10.7.19.117'; 
+      const API_URL = `http://${BACKEND_IP}:5050/ask`;
+      if (!userMessage) return;
+
+      activateChatView();
+
+      appendMessage(userMessage, 'user');
+      textarea.value = "";
+      textarea.style.height = 'auto';
+
+      const botRow = appendMessage('sending...', 'bot', true);
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "accept": "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ query: userMessage })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        
+        const botMessageDiv = botRow.querySelector('.message');
+        botMessageDiv.classList.remove('waiting');
+        botMessageDiv.innerHTML = marked.parse(data.answer || "No answer found.");
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+      } catch (error) {
+        const botMessageDiv = botRow.querySelector('.message');
+        botMessageDiv.classList.remove('waiting');
+        botMessageDiv.innerHTML = `Error: Could not connect to the service.`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+
+    function appendMessage(text, type, isWaiting = false) {
+        const row = document.createElement("div");
+        row.className = `message-row ${type}`;
+        
+        const message = document.createElement("div");
+        message.className = 'message';
+        if (isWaiting) {
+            message.classList.add('waiting');
+            message.textContent = text;
+        } else {
+            message.innerHTML = type === 'user' ? text : marked.parse(text);
+        }
+        
+        row.appendChild(message);
+        chatBoxInner.appendChild(row);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return row;
+    }
+  </script>
+</body>
+</html>
